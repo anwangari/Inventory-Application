@@ -1,0 +1,26 @@
+// ============================================
+// FILE: client/src/components/common/Button.jsx
+// ============================================
+import '../../styles/Button.css';
+
+const Button = ({ 
+  children, 
+  onClick, 
+  variant = 'primary', 
+  type = 'button',
+  disabled = false,
+  className = ''
+}) => {
+  return (
+    <button
+      type={type}
+      className={`btn btn-${variant} ${className}`}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {children}
+    </button>
+  );
+};
+
+export default Button;
