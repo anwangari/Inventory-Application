@@ -1,24 +1,25 @@
 // ============================================
-// FILE: client/src/pages/Products.jsx
+// FILE: client/src/pages/Categories.jsx
 // ============================================
 import { useState, useEffect } from 'react';
-import { productsAPI, categoriesAPI, suppliersAPI } from '../services/api';
+import { categoriesAPI, productsAPI } from '../services/api';
 import Table from '../components/common/Table';
 import Button from '../components/common/Button';
 import SearchBar from '../components/common/SearchBar';
-import ProductModal from '../components/modals/ProductModal';
+import Card from '../components/common/Card';
+import CategoryModal from '../components/modals/CategoryModal';
 import DeleteModal from '../components/modals/DeleteModal';
-import '../styles/Products.css';
+import ViewCategoryModal from '../components/modals/ViewCategoryModal';
 
-const Products = () => {
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
+const Categories = () => {
   const [categories, setCategories] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
+  const [filteredCategories, setFilteredCategories] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [modalMode, setModalMode] = useState('add');
   
   useEffect(() => {
@@ -28,164 +29,214 @@ const Products = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [productsData, categoriesData, suppliersData] = await Promise.all([
-        productsAPI.getAll(),
+      const [categoriesData, productsData] = await Promise.all([
         categoriesAPI.getAll(),
-        suppliersAPI.getAll(),
+        productsAPI.getAll(),
       ]);
-      setProducts(productsData);
-      setFilteredProducts(productsData);
       setCategories(categoriesData);
-      setSuppliers(suppliersData);
+      setFilteredCategories(categoriesData);
+      setProducts(productsData);
     } catch (error) {
       console.error('Error fetching data:', error);
-      alert('Failed to fetch data');
+      alert('Failed to fetch categories');
     } finally {
       setLoading(false);
     }
   };
   
   const handleSearch = (query) => {
-    const filtered = products.filter(product =>
-      product.name.toLowerCase().includes(query.toLowerCase()) ||
-      product.sku.toLowerCase().includes(query.toLowerCase()) ||
-      product.category_name?.toLowerCase().includes(query.toLowerCase())
+    const filtered = categories.filter(category =>
+      category.name.toLowerCase().includes(query.toLowerCase()) ||
+      category.description?.toLowerCase().includes(query.toLowerCase())
     );
-    setFilteredProducts(filtered);
+    setFilteredCategories(filtered);
   };
   
   const handleAdd = () => {
     setModalMode('add');
-    setSelectedProduct(null);
+    setSelectedCategory(null);
     setIsModalOpen(true);
   };
   
-  const handleEdit = (product) => {
+  const handleEdit = (category) => {
     setModalMode('edit');
-    setSelectedProduct(product);
+    setSelectedCategory(category);
     setIsModalOpen(true);
   };
   
-  const handleDelete = (product) => {
-    setSelectedProduct(product);
+  const handleView = (category) => {
+    setSelectedCategory(category);
+    setIsViewModalOpen(true);
+  };
+  
+  const handleDelete = (category) => {
+    const productCount = products.filter(p => p.category_id === category.id).length;
+    if (productCount > 0) {
+      alert(`Cannot delete category. It has ${productCount} product(s) assigned. Please reassign or delete those products first.`);
+      return;
+    }
+    setSelectedCategory(category);
     setIsDeleteModalOpen(true);
   };
   
-  const handleSave = async (productData) => {
+  const handleSave = async (categoryData) => {
     try {
       if (modalMode === 'add') {
-        await productsAPI.create(productData);
+        await categoriesAPI.create(categoryData);
       } else {
-        await productsAPI.update(selectedProduct.id, productData);
+        await categoriesAPI.update(selectedCategory.id, categoryData);
       }
       await fetchData();
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Error saving product:', error);
+      console.error('Error saving category:', error);
       throw error;
     }
   };
   
   const handleConfirmDelete = async () => {
     try {
-      await productsAPI.delete(selectedProduct.id);
+      await categoriesAPI.delete(selectedCategory.id);
       await fetchData();
       setIsDeleteModalOpen(false);
     } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Failed to delete product');
+      console.error('Error deleting category:', error);
+      alert('Failed to delete category');
     }
   };
   
+  const getCategoryStats = (categoryId) => {
+    const categoryProducts = products.filter(p => p.category_id === categoryId);
+    return {
+      productCount: categoryProducts.length,
+      totalValue: categoryProducts.reduce((sum, p) => sum + (p.quantity * parseFloat(p.unit_price)), 0),
+      totalQuantity: categoryProducts.reduce((sum, p) => sum + p.quantity, 0)
+    };
+  };
+  
   const columns = [
-    { key: 'sku', label: 'SKU', width: '120px' },
-    { key: 'name', label: 'Name', width: 'auto' },
-    { key: 'category_name', label: 'Category', width: '150px' },
-    { key: 'supplier_name', label: 'Supplier', width: '150px' },
+    { key: 'name', label: 'Category Name', width: '250px' },
     { 
-      key: 'quantity', 
-      label: 'Quantity', 
-      width: '100px',
-      render: (value, row) => (
-        <span className={value <= row.reorder_level ? 'low-stock' : ''}>
-          {value}
-        </span>
-      )
+      key: 'description', 
+      label: 'Description', 
+      width: 'auto',
+      render: (value) => value || <span style={{ color: 'var(--text-tertiary)' }}>No description</span>
     },
     { 
-      key: 'unit_price', 
-      label: 'Price', 
-      width: '100px',
-      render: (value) => `$${parseFloat(value).toFixed(2)}`
+      key: 'id', 
+      label: 'Products', 
+      width: '120px',
+      render: (value) => {
+        const stats = getCategoryStats(value);
+        return (
+          <span className={stats.productCount === 0 ? 'text-muted' : 'text-bold'}>
+            {stats.productCount}
+          </span>
+        );
+      }
     },
     { 
-      key: 'status', 
-      label: 'Status', 
-      width: '100px',
-      render: (value) => (
-        <span className={`status-badge status-${value}`}>
-          {value}
-        </span>
-      )
+      key: 'id', 
+      label: 'Total Value', 
+      width: '150px',
+      render: (value) => {
+        const stats = getCategoryStats(value);
+        return `$${stats.totalValue.toFixed(2)}`;
+      }
+    },
+    { 
+      key: 'created_at', 
+      label: 'Created', 
+      width: '180px',
+      render: (value) => new Date(value).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      })
     },
   ];
   
   if (loading) {
-    return <div className="loading">Loading products...</div>;
+    return <div className="loading">Loading categories...</div>;
   }
   
+  const totalProducts = products.length;
+  const totalCategoryValue = products.reduce((sum, p) => sum + (p.quantity * parseFloat(p.unit_price)), 0);
+  const categoriesWithProducts = categories.filter(c => products.some(p => p.category_id === c.id)).length;
+  const emptyCategories = categories.length - categoriesWithProducts;
+  
   return (
-    <div className="products-page">
+    <div className="categories-page">
       <div className="page-header">
-        <SearchBar onSearch={handleSearch} placeholder="Search products..." />
-        <Button onClick={handleAdd}>+ Add Product</Button>
+        <SearchBar onSearch={handleSearch} placeholder="Search categories..." />
+        <Button onClick={handleAdd}>+ Add Category</Button>
       </div>
       
-      <div className="products-stats">
-        <div className="stat-card">
-          <span className="stat-label">Total Products</span>
-          <span className="stat-value">{products.length}</span>
-        </div>
-        <div className="stat-card warning">
-          <span className="stat-label">Low Stock</span>
-          <span className="stat-value">
-            {products.filter(p => p.quantity <= p.reorder_level).length}
-          </span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-label">Total Value</span>
-          <span className="stat-value">
-            ${products.reduce((sum, p) => sum + (p.quantity * parseFloat(p.unit_price)), 0).toFixed(2)}
-          </span>
-        </div>
+      <div className="stats-grid">
+        <Card
+          title="Total Categories"
+          value={categories.length}
+          icon="🏷️"
+          className="card-blue"
+        />
+        <Card
+          title="Categories in Use"
+          value={categoriesWithProducts}
+          icon="✅"
+          className="card-green"
+        />
+        <Card
+          title="Empty Categories"
+          value={emptyCategories}
+          icon="📋"
+          className="card-purple"
+        />
+        <Card
+          title="Total Products"
+          value={totalProducts}
+          icon="📦"
+          className="card-orange"
+        />
+        <Card
+          title="Total Inventory Value"
+          value={`$${totalCategoryValue.toFixed(2)}`}
+          icon="💰"
+          className="card-teal"
+        />
       </div>
       
       <Table
         columns={columns}
-        data={filteredProducts}
+        data={filteredCategories}
+        onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
       
-      <ProductModal
+      <CategoryModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}
-        product={selectedProduct}
+        category={selectedCategory}
         mode={modalMode}
-        categories={categories}
-        suppliers={suppliers}
+      />
+      
+      <ViewCategoryModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        category={selectedCategory}
+        products={products.filter(p => p.category_id === selectedCategory?.id)}
       />
       
       <DeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={selectedProduct?.name}
-        itemType="product"
+        itemName={selectedCategory?.name}
+        itemType="category"
       />
     </div>
   );
 };
 
-export default Products;
+export default Categories;
