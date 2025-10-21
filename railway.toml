@@ -1,0 +1,7 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "npm run install-server && npm run install-client && npm run build-client && npm start"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
