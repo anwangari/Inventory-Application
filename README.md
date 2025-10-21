@@ -4,7 +4,7 @@
 
 ![App Screenshot](./images/Categories.png)
 
-🔗 **[Live Demo](https://your-demo-link.com)**
+🔗 **[Live Demo](https://inventory-application-production-34b0.up.railway.app/)**
 
 ---
 
