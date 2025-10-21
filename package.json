@@ -2,13 +2,13 @@
   "name": "server",
   "version": "1.0.0",
   "description": "Inventory Management System Backend",
-  "main": "server.js",
+  "main": "server/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "db:populate": "node scripts/populatedb.js",
-    "db:test": "node scripts/testConnection.js",
-    "db:create": "node scripts/createTables.js"
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "db:populate": "node server/scripts/populatedb.js",
+    "db:test": "node server/scripts/testConnection.js",
+    "db:create": "node server/scripts/createTables.js"
   },
   "keywords": ["inventory", "express", "postgresql"],
   "author": "",
