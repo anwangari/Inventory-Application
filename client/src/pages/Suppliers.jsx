@@ -1,25 +1,25 @@
 // ============================================
-// FILE: client/src/pages/Suppliers.jsx
+// FILE: client/src/pages/Categories.jsx
 // ============================================
 import { useState, useEffect } from 'react';
-import { suppliersAPI, productsAPI } from '../services/api';
+import { categoriesAPI, productsAPI } from '../services/api';
 import Table from '../components/common/Table';
 import Button from '../components/common/Button';
 import SearchBar from '../components/common/SearchBar';
 import Card from '../components/common/Card';
-import SupplierModal from '../components/modals/SupplierModal';
+import CategoryModal from '../components/modals/CategoryModal';
 import DeleteModal from '../components/modals/DeleteModal';
-import ViewSupplierModal from '../components/modals/ViewSupplierModal';
+import ViewCategoryModal from '../components/modals/ViewCategoryModal';
 
-const Suppliers = () => {
-  const [suppliers, setSuppliers] = useState([]);
-  const [filteredSuppliers, setFilteredSuppliers] = useState([]);
+const Categories = () => {
+  const [categories, setCategories] = useState([]);
+  const [filteredCategories, setFilteredCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [modalMode, setModalMode] = useState('add');
   
   useEffect(() => {
@@ -29,119 +29,105 @@ const Suppliers = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [suppliersData, productsData] = await Promise.all([
-        suppliersAPI.getAll(),
+      const [categoriesData, productsData] = await Promise.all([
+        categoriesAPI.getAll(),
         productsAPI.getAll(),
       ]);
-      setSuppliers(suppliersData);
-      setFilteredSuppliers(suppliersData);
+      setCategories(categoriesData);
+      setFilteredCategories(categoriesData);
       setProducts(productsData);
     } catch (error) {
       console.error('Error fetching data:', error);
-      alert('Failed to fetch suppliers');
+      alert('Failed to fetch categories');
     } finally {
       setLoading(false);
     }
   };
   
   const handleSearch = (query) => {
-    const filtered = suppliers.filter(supplier =>
-      supplier.name.toLowerCase().includes(query.toLowerCase()) ||
-      supplier.contact_person?.toLowerCase().includes(query.toLowerCase()) ||
-      supplier.email?.toLowerCase().includes(query.toLowerCase()) ||
-      supplier.phone?.toLowerCase().includes(query.toLowerCase())
+    const filtered = categories.filter(category =>
+      category.name.toLowerCase().includes(query.toLowerCase()) ||
+      category.description?.toLowerCase().includes(query.toLowerCase())
     );
-    setFilteredSuppliers(filtered);
+    setFilteredCategories(filtered);
   };
   
   const handleAdd = () => {
     setModalMode('add');
-    setSelectedSupplier(null);
+    setSelectedCategory(null);
     setIsModalOpen(true);
   };
   
-  const handleEdit = (supplier) => {
+  const handleEdit = (category) => {
     setModalMode('edit');
-    setSelectedSupplier(supplier);
+    setSelectedCategory(category);
     setIsModalOpen(true);
   };
   
-  const handleView = (supplier) => {
-    setSelectedSupplier(supplier);
+  const handleView = (category) => {
+    setSelectedCategory(category);
     setIsViewModalOpen(true);
   };
   
-  const handleDelete = (supplier) => {
-    const productCount = products.filter(p => p.supplier_id === supplier.id).length;
+  const handleDelete = (category) => {
+    const productCount = products.filter(p => p.category_id === category.id).length;
     if (productCount > 0) {
-      alert(`Cannot delete supplier. They supply ${productCount} product(s). Please reassign or delete those products first.`);
+      alert(`Cannot delete category. It has ${productCount} product(s) assigned. Please reassign or delete those products first.`);
       return;
     }
-    setSelectedSupplier(supplier);
+    setSelectedCategory(category);
     setIsDeleteModalOpen(true);
   };
   
-  const handleSave = async (supplierData) => {
+  const handleSave = async (categoryData) => {
     try {
       if (modalMode === 'add') {
-        await suppliersAPI.create(supplierData);
+        await categoriesAPI.create(categoryData);
       } else {
-        await suppliersAPI.update(selectedSupplier.id, supplierData);
+        await categoriesAPI.update(selectedCategory.id, categoryData);
       }
       await fetchData();
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Error saving supplier:', error);
+      console.error('Error saving category:', error);
       throw error;
     }
   };
   
   const handleConfirmDelete = async () => {
     try {
-      await suppliersAPI.delete(selectedSupplier.id);
+      await categoriesAPI.delete(selectedCategory.id);
       await fetchData();
       setIsDeleteModalOpen(false);
     } catch (error) {
-      console.error('Error deleting supplier:', error);
-      alert('Failed to delete supplier');
+      console.error('Error deleting category:', error);
+      alert('Failed to delete category');
     }
   };
   
-  const getSupplierStats = (supplierId) => {
-    const supplierProducts = products.filter(p => p.supplier_id === supplierId);
+  const getCategoryStats = (categoryId) => {
+    const categoryProducts = products.filter(p => p.category_id === categoryId);
     return {
-      productCount: supplierProducts.length,
-      totalValue: supplierProducts.reduce((sum, p) => sum + (p.quantity * parseFloat(p.unit_price)), 0),
-      totalQuantity: supplierProducts.reduce((sum, p) => sum + p.quantity, 0)
+      productCount: categoryProducts.length,
+      totalValue: categoryProducts.reduce((sum, p) => sum + (p.quantity * parseFloat(p.unit_price)), 0),
+      totalQuantity: categoryProducts.reduce((sum, p) => sum + p.quantity, 0)
     };
   };
   
   const columns = [
-    { key: 'name', label: 'Supplier Name', width: '200px' },
+    { key: 'name', label: 'Category Name', width: '250px' },
     { 
-      key: 'contact_person', 
-      label: 'Contact Person', 
-      width: '180px',
-      render: (value) => value || <span style={{ color: 'var(--text-tertiary)' }}>-</span>
+      key: 'description', 
+      label: 'Description', 
+      width: 'auto',
+      render: (value) => value || <span style={{ color: 'var(--text-tertiary)' }}>No description</span>
     },
     { 
-      key: 'email', 
-      label: 'Email', 
-      width: '220px',
-      render: (value) => value || <span style={{ color: 'var(--text-tertiary)' }}>-</span>
-    },
-    { 
-      key: 'phone', 
-      label: 'Phone', 
-      width: '140px',
-      render: (value) => value || <span style={{ color: 'var(--text-tertiary)' }}>-</span>
-    },
-    { 
-      key: 'id', 
+      key: 'product_count', 
       label: 'Products', 
-      width: '100px',
-      render: (value) => {
-        const stats = getSupplierStats(value);
+      width: '120px',
+      render: (value, row) => {
+        const stats = getCategoryStats(row.id);
         return (
           <span className={stats.productCount === 0 ? 'text-muted' : 'text-bold'}>
             {stats.productCount}
@@ -150,49 +136,59 @@ const Suppliers = () => {
       }
     },
     { 
-      key: 'id', 
+      key: 'total_value', 
       label: 'Total Value', 
-      width: '140px',
-      render: (value) => {
-        const stats = getSupplierStats(value);
+      width: '150px',
+      render: (value, row) => {
+        const stats = getCategoryStats(row.id);
         return `$${stats.totalValue.toFixed(2)}`;
       }
+    },
+    { 
+      key: 'created_at', 
+      label: 'Created', 
+      width: '180px',
+      render: (value) => new Date(value).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      })
     },
   ];
   
   if (loading) {
-    return <div className="loading">Loading suppliers...</div>;
+    return <div className="loading">Loading categories...</div>;
   }
   
   const totalProducts = products.length;
-  const totalSupplierValue = products.reduce((sum, p) => sum + (p.quantity * parseFloat(p.unit_price)), 0);
-  const suppliersWithProducts = suppliers.filter(s => products.some(p => p.supplier_id === s.id)).length;
-  const inactiveSuppliers = suppliers.length - suppliersWithProducts;
+  const totalCategoryValue = products.reduce((sum, p) => sum + (p.quantity * parseFloat(p.unit_price)), 0);
+  const categoriesWithProducts = categories.filter(c => products.some(p => p.category_id === c.id)).length;
+  const emptyCategories = categories.length - categoriesWithProducts;
   
   return (
-    <div className="suppliers-page">
+    <div className="categories-page">
       <div className="page-header">
-        <SearchBar onSearch={handleSearch} placeholder="Search suppliers..." />
-        <Button onClick={handleAdd}>+ Add Supplier</Button>
+        <SearchBar onSearch={handleSearch} placeholder="Search categories..." />
+        <Button onClick={handleAdd}>+ Add Category</Button>
       </div>
       
       <div className="stats-grid">
         <Card
-          title="Total Suppliers"
-          value={suppliers.length}
-          icon="🏢"
+          title="Total Categories"
+          value={categories.length}
+          icon="🏷️"
           className="card-blue"
         />
         <Card
-          title="Active Suppliers"
-          value={suppliersWithProducts}
+          title="Categories in Use"
+          value={categoriesWithProducts}
           icon="✅"
           className="card-green"
         />
         <Card
-          title="Inactive Suppliers"
-          value={inactiveSuppliers}
-          icon="💤"
+          title="Empty Categories"
+          value={emptyCategories}
+          icon="📋"
           className="card-purple"
         />
         <Card
@@ -202,8 +198,8 @@ const Suppliers = () => {
           className="card-orange"
         />
         <Card
-          title="Total Supply Value"
-          value={`${totalSupplierValue.toFixed(2)}`}
+          title="Total Inventory Value"
+          value={`$${totalCategoryValue.toFixed(2)}`}
           icon="💰"
           className="card-teal"
         />
@@ -211,36 +207,36 @@ const Suppliers = () => {
       
       <Table
         columns={columns}
-        data={filteredSuppliers}
+        data={filteredCategories}
         onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
       
-      <SupplierModal
+      <CategoryModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}
-        supplier={selectedSupplier}
+        category={selectedCategory}
         mode={modalMode}
       />
       
-      <ViewSupplierModal
+      <ViewCategoryModal
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
-        supplier={selectedSupplier}
-        products={products.filter(p => p.supplier_id === selectedSupplier?.id)}
+        category={selectedCategory}
+        products={products.filter(p => p.category_id === selectedCategory?.id)}
       />
       
       <DeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={selectedSupplier?.name}
-        itemType="supplier"
+        itemName={selectedCategory?.name}
+        itemType="category"
       />
     </div>
   );
 };
 
-export default Suppliers;
+export default Categories;

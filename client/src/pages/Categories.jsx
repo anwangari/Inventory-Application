@@ -123,11 +123,11 @@ const Categories = () => {
       render: (value) => value || <span style={{ color: 'var(--text-tertiary)' }}>No description</span>
     },
     { 
-      key: 'id', 
+      key: 'product_count', 
       label: 'Products', 
       width: '120px',
-      render: (value) => {
-        const stats = getCategoryStats(value);
+      render: (value, row) => {
+        const stats = getCategoryStats(row.id);
         return (
           <span className={stats.productCount === 0 ? 'text-muted' : 'text-bold'}>
             {stats.productCount}
@@ -136,11 +136,11 @@ const Categories = () => {
       }
     },
     { 
-      key: 'id', 
+      key: 'total_value', 
       label: 'Total Value', 
       width: '150px',
-      render: (value) => {
-        const stats = getCategoryStats(value);
+      render: (value, row) => {
+        const stats = getCategoryStats(row.id);
         return `$${stats.totalValue.toFixed(2)}`;
       }
     },
